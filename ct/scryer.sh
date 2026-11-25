@@ -27,7 +27,7 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -f /opt/scryer/scryer ]]; then
+  if [[ ! -d /var/lib/scryer/ ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -37,7 +37,7 @@ function update_script() {
     systemctl stop scryer
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "scryer" "scryer-media/scryer" "prebuild" "latest" "/opt/scryer" "scryer-linux-$(arch_resolve "x86_64" "arm64")-portable.tar.gz" "scryer-v"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "scryer" "scryer-media/scryer" "prebuild" "latest" "/opt/scryer" "scryer-linux-$(arch_resolve "x86_64" "arm64")-portable.tar.gz" "scryer-v"
     chmod 755 /opt/scryer/scryer
 
     msg_info "Starting Service"
