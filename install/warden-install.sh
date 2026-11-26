@@ -24,7 +24,20 @@ NODE_VERSION="24" NODE_MODULE="corepack" setup_nodejs
 GO_VERSION="latest" setup_go
 
 # Warden publishes no releases yet, so it is built from its main branch.
+# vladf90/warden is private: ct/warden.sh asked for a read-only token, and git
+# sends it as a header from the environment, so it isn't stored in the clone.
+{ warden_xtrace=$-; set +x; } 2>/dev/null # keep the token out of a debug trace
+if [[ -z "${WARDEN_GITHUB_TOKEN:-}" ]]; then
+  msg_error "No GitHub token for vladf90/warden (WARDEN_GITHUB_TOKEN)"
+  exit 1
+fi
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0="http.https://github.com/vladf90/warden.extraheader"
+GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'x-access-token:%s' "$WARDEN_GITHUB_TOKEN" | base64 -w0)"
+export GIT_CONFIG_VALUE_0
+if [[ $warden_xtrace == *x* ]]; then set -x; fi
 fetch_and_deploy_gh_branch "warden" "vladf90/warden" "main" "/opt/warden"
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 WARDEN_GITHUB_TOKEN
 
 msg_info "Building Warden"
 cd /opt/warden

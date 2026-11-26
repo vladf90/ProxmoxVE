@@ -24,6 +24,36 @@ variables
 color
 catch_errors
 
+# vladf90/warden is a private repository, so git reads it with a GitHub token
+# that can only read that repository (fine-grained, Contents: read-only). It is
+# asked for here and kept only in the environment: the install inside the
+# container gets it through lxc-attach, and git sends it as a header from the
+# environment, so it is never written to disk or put on a command line.
+function warden_token() {
+  { local xtrace=$-; set +x; } 2>/dev/null # keep the token out of a debug trace
+  # Without a terminal (an unattended update), pass WARDEN_GITHUB_TOKEN in the environment.
+  if [[ -z "${WARDEN_GITHUB_TOKEN:-}" ]] && (: </dev/tty) 2>/dev/null; then
+    read -rsp "GitHub token that can read vladf90/warden: " WARDEN_GITHUB_TOKEN </dev/tty || true
+    echo
+  fi
+  if [[ -z "${WARDEN_GITHUB_TOKEN:-}" ]]; then
+    msg_error "Warden needs a GitHub token that can read vladf90/warden (WARDEN_GITHUB_TOKEN)"
+    exit 1
+  fi
+  export WARDEN_GITHUB_TOKEN
+  if [[ $xtrace == *x* ]]; then set -x; fi
+}
+
+function warden_git_auth() {
+  warden_token
+  { local xtrace=$-; set +x; } 2>/dev/null
+  export GIT_CONFIG_COUNT=1
+  export GIT_CONFIG_KEY_0="http.https://github.com/vladf90/warden.extraheader"
+  GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'x-access-token:%s' "$WARDEN_GITHUB_TOKEN" | base64 -w0)"
+  export GIT_CONFIG_VALUE_0
+  if [[ $xtrace == *x* ]]; then set -x; fi
+}
+
 function update_script() {
   header_info
   check_container_storage
@@ -34,6 +64,7 @@ function update_script() {
   fi
 
   # Warden publishes no releases yet, so updates follow its main branch.
+  warden_git_auth
   if check_for_gh_branch "warden" "vladf90/warden" "main"; then
     msg_info "Stopping Service"
     systemctl stop warden
@@ -70,6 +101,7 @@ function update_script() {
 }
 
 start
+warden_token
 build_container
 description
 
