@@ -84,4 +84,14 @@ fi
 
 motd_ssh
 customize
+
+# `update` must pull from this fork's main branch. An install from a test branch
+# records that branch, and the branch is deleted once its PR merges.
+if [[ -f /usr/bin/update ]]; then
+  sed -i -E \
+    -e 's#^export COMMUNITY_SCRIPTS_URL=.*#export COMMUNITY_SCRIPTS_URL="https://raw.githubusercontent.com/vladf90/ProxmoxVE/main"#' \
+    -e 's#https://raw\.githubusercontent\.com/[^/]+/ProxmoxVE/[^"]*(/ct/)#https://raw.githubusercontent.com/vladf90/ProxmoxVE/main\1#g' \
+    /usr/bin/update
+fi
+
 cleanup_lxc
